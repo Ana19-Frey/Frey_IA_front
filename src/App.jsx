@@ -98,7 +98,7 @@ function App() {
     const [key, setKey] = useState('chat');
     
     // URL de votre API Python FastAPI
-    const API_BASE_URL = 'http://localhost:8000'; 
+    const API_BASE_URL = 'https://frey-ia.onrender.com'; 
 
     return (
         // Utilisation du Container de Bootstrap pour la réactivité
