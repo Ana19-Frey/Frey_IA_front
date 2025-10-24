@@ -1,6 +1,7 @@
 // frey-frontend/src/DataAnalyzer.jsx
 
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown'; // 👈 NOUVEL IMPORT pour afficher le Markdown
 import axios from 'axios';
 // Importation des composants Bootstrap pour le style et l'UX
 import Button from 'react-bootstrap/Button';
@@ -27,9 +28,14 @@ const DataAnalyzer = ({ apiUrl }) => {
         setReport('');
 
         try {
+            // 🎯 CORRECTION CRITIQUE : Nettoyage et encodage des sauts de ligne
+            // Remplace tous les types de sauts de ligne (\r\n, \r, \n) par le caractère d'échappement \n.
+            // Ceci est essentiel pour que le JSON soit valide et que Pandas puisse lire les lignes.
+            const encodedData = dataInput.replace(/\r\n|\r|\n/g, '\n'); 
+
             // L'API attend un objet JSON avec le champ "data_input"
             const response = await axios.post(`${apiUrl}/api/analyze`, {
-                data_input: dataInput,
+                data_input: encodedData, // <-- ENVOI DES DONNÉES ENCODÉES
             });
 
             if (response.data.success) {
@@ -62,7 +68,8 @@ const DataAnalyzer = ({ apiUrl }) => {
             {error && <Alert variant="danger">{error}</Alert>}
             
             <Form.Group className="mb-3 data-analyzer-form-container">
-                {/* ⚠️ Utilisation du composant Form.Control de Bootstrap, classe "form-control" est implicite */}
+                <Form.Label className="fw-bold text-dark">Collez vos Données CSV ou Tabulées ici :</Form.Label>
+                {/* ⚠️ Utilisation du composant Form.Control de Bootstrap */}
                 <Form.Control
                     as="textarea"
                     value={dataInput}
@@ -104,8 +111,9 @@ const DataAnalyzer = ({ apiUrl }) => {
             {report && (
                 <div className="result-box mt-4">
                     <div className="text-primary mb-3 fw-bold">Rapport d'Analyse FREY :</div>
-                    {/* Utilise dangerouslySetInnerHTML pour afficher le Markdown (y compris les tableaux) */}
-                    <div dangerouslySetInnerHTML={{ __html: report }}></div>
+                    {/* ✅ CORRECTION : Utilisation de ReactMarkdown pour afficher le rapport de manière structurée et sécurisée */}
+                    <ReactMarkdown>{report}</ReactMarkdown>
+                    
                 </div>
             )}
         </div>
