@@ -4,17 +4,21 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './App.css'; 
 
+// 🎯 NOUVEL IMPORT CRITIQUE : Pour afficher le contenu formaté du Chatbot
+import ReactMarkdown from 'react-markdown'; 
+
 // Importation des composants React-Bootstrap
 import Container from 'react-bootstrap/Container';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
-import Button from 'react-bootstrap/Button'; // Optionnel, mais utile
+import Button from 'react-bootstrap/Button';
+import Spinner from 'react-bootstrap/Spinner'; // Ajout de Spinner pour le Chatbot
 
 // Importation des trois composants d'onglets (maintenant fonctionnels)
 import DataAnalyzer from './DataAnalyzer';
 import ContentGenerator from './ContentGenerator'; 
 
-// --- 1. Composant Chatbot Minimal (Utilise maintenant les classes Bootstrap) ---
+// --- 1. Composant Chatbot Amélioré ---
 const Chatbot = ({ apiUrl }) => {
     const [prompt, setPrompt] = useState('');
     const [history, setHistory] = useState([]); 
@@ -31,6 +35,7 @@ const Chatbot = ({ apiUrl }) => {
         setIsLoading(true);
 
         try {
+            // Pas de middleware d'encodage nécessaire ici.
             const response = await axios.post(`${apiUrl}/api/chat`, {
                 user_prompt: currentPrompt,
             });
@@ -41,9 +46,12 @@ const Chatbot = ({ apiUrl }) => {
 
         } catch (error) {
             console.error("Erreur API:", error);
+            
+            // Gestion d'erreur améliorée
+            const errorDetail = error.response?.data?.detail || "Vérifiez la connexion ou le statut de l'API Render.";
             const errorMessage = { 
                 role: 'model', 
-                content: `🚨 ERREUR: Impossible de joindre l'API Python. Vérifiez le serveur et le CORS.` 
+                content: `🚨 ERREUR: Impossible de joindre l'API Python. Détail: ${errorDetail}` 
             };
             setHistory(prev => [...prev, errorMessage]);
         } finally {
@@ -66,12 +74,19 @@ const Chatbot = ({ apiUrl }) => {
                         <span className="avatar">{msg.role === 'user' ? '👤' : '🤖'}</span>
                         <div className="message-content">
                             <div className={`p-2 rounded ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-light border'}`}>
-                                {msg.content}
+                                {/* ✅ CORRECTION: Utilisation de ReactMarkdown pour les messages du modèle */}
+                                {msg.role === 'model' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : msg.content}
                             </div>
                         </div>
                     </div>
                 ))}
-                {isLoading && <div className="loading text-center text-secondary">🤖 FREY est en train d'écrire...</div>}
+                {/* Indicateur de chargement du Chatbot */}
+                {isLoading && (
+                    <div className="loading text-center text-secondary">
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        🤖 FREY est en train d'écrire...
+                    </div>
+                )}
             </div>
 
             {/* Formulaire de saisie */}
@@ -84,7 +99,7 @@ const Chatbot = ({ apiUrl }) => {
                     disabled={isLoading}
                     className="form-control me-2"
                 />
-                <Button type="submit" disabled={isLoading} variant="primary">
+                <Button type="submit" disabled={isLoading || !prompt.trim()} variant="primary" className="primary-button">
                     <span style={{fontSize: '1.2rem'}}>➤</span>
                 </Button>
             </form>
@@ -92,9 +107,8 @@ const Chatbot = ({ apiUrl }) => {
     );
 };
 
-// --- 2. Composant Principal de l'Application (Utilise le Composant Tabs de Bootstrap) ---
+// --- 2. Composant Principal de l'Application ---
 function App() {
-    // Utiliser des clés de texte simples pour les onglets
     const [key, setKey] = useState('chat');
     
     // URL de votre API Python FastAPI
@@ -111,17 +125,20 @@ function App() {
                 id="controlled-tab-example"
                 activeKey={key}
                 onSelect={(k) => setKey(k)}
-                className="mb-3 custom-tabs" // 'custom-tabs' pour cibler avec CSS
+                className="mb-3 custom-tabs" 
             >
                 <Tab eventKey="chat" title={<span className="fw-bold">💬 Chatbot Intelligent</span>}>
+                    {/* Le Chatbot gère la connexion à /api/chat */}
                     <Chatbot apiUrl={API_BASE_URL} />
                 </Tab>
                 
                 <Tab eventKey="analyze" title={<span className="fw-bold">📊 Analyseur de Données</span>}>
+                    {/* DataAnalyzer gère la connexion à /api/analyze, avec le middleware de sauts de ligne intégré (dans DataAnalyzer.jsx) */}
                     <DataAnalyzer apiUrl={API_BASE_URL} />
                 </Tab>
 
                 <Tab eventKey="generate" title={<span className="fw-bold">✍️ Générateur de Contenu</span>}>
+                    {/* ContentGenerator gère la connexion à /api/generate */}
                     <ContentGenerator apiUrl={API_BASE_URL} />
                 </Tab>
             </Tabs>
